@@ -1,5 +1,6 @@
 package selenium_api;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.openqa.selenium.By;
@@ -26,7 +27,7 @@ public class iFrameandwindow  {
 		driver.manage().window().maximize();
 	}
     
-	@Test
+	
 	public void TC_01_iFrame() {
 		driver.get("https://www.hdfcbank.com/");
 		// Issue 01: Check element is displayed//
@@ -93,9 +94,115 @@ public class iFrameandwindow  {
 		
 	}
 	
+	public void TC_02_Windown() {
+		driver.get("http://daominhdam.890m.com/");
+		
+		/*CASE 01 - 2 windows / 2 tab: switch via GUID*/
+		// Get GUID of current page (parent page)
+		String parentGUID = driver.getWindowHandle();
+		
+		// click to window
+		driver.findElement(By.xpath("//a[text()='Click Here']")).click();
+		
+		//  Switch to New tab or new window
+		//switchToChildWindowByGUID(parentGUID);
+		switchToWindowByTitle("Google");
+		
+		// Verify 
+		String googleTitle = driver.getTitle();
+		Assert.assertEquals(googleTitle, "Google");
+		
+		closeAllWithoutParentWindows(parentGUID);
+		Assert.assertEquals(driver.getTitle(), "SELENIUM WEBDRIVER FORM DEMO");
+		
+		/*CASE 02 - 2 windows / 2 tab: switch via GUID*/
+	}
+	
+	@Test
+	public void TC_03_Windown() {
+		driver.get("http://www.hdfcbank.com/");
+		String parentGUID = driver.getWindowHandle();
+		System.out.println("Parent ID = " + parentGUID);
+		
+		// Step 01
+		overideGlobalWait(10);
+		List <WebElement> notificattionIframe = driver.findElements(By.xpath("//iframe[@id='vizury-notification-template']"));
+		if(notificattionIframe.size() > 0) {
+			driver.switchTo().frame(notificattionIframe.get(0));
+			WebElement closeIcon = driver.findElement(By.xpath("//div[@id='div-close']"));
+			JavascriptExecutor Je = (JavascriptExecutor) driver;
+			Je.executeScript("arguments[0].click();", closeIcon);
+			System.out.println("Closed popup!");
+			driver.switchTo().defaultContent();
+		}
+		
+		overideGlobalWait(30);
+		driver.findElement(By.xpath("//a[text()='Agri']")).click();
+		switchToWindowByTitle("HDFC Bank Kisan Dhan Vikas e-Kendra");
+		
+		// Click Account detail
+		driver.findElement(By.xpath("//p[text()='Account Details']")).click();
+		switchToWindowByTitle("Welcome to HDFC Bank NetBanking");
+		// Switch to footer frame
+		
+		WebElement footerFrame = driver.findElement(By.xpath("//frame[@name='footer']"));
+		driver.switchTo().frame(footerFrame);
+		
+		driver.findElement(By.xpath("//a[text()='Privacy Policy']")).click();
+		switchToWindowByTitle("HDFC Bank - Leading Bank in India, Banking Services, Private Banking, Personal Loan, Car Loan");
+		
+		// Click CSR
+		
+		driver.findElement(By.xpath("//a[text()='CSR']")).click();
+		closeAllWithoutParentWindows(parentGUID);
+		
+		Assert.assertEquals(driver.getTitle(), "HDFC Bank: Personal Banking Services");
+	}
 	@AfterClass
 	public void afterClass() {
 		driver.quit();
 	}
+	
+	public void switchToChildWindowByGUID(String parentID) {
+		// Get all current window	
+        Set <String> allWindows = driver.getWindowHandles();
+        // 
+        for (String runWindow : allWindows) {
+                    if (!runWindow.equals(parentID)) {
+                                driver.switchTo().window(runWindow);
+                                break;
+                    }
+        }
+	}
+	
+	public void switchToWindowByTitle(String expectedTitle) {
+		 
+         Set <String> allWindows = driver.getWindowHandles();
+         for (String runWindows : allWindows) {
+                     driver.switchTo().window(runWindows);
+                     String currentWin = driver.getTitle();
+                     if (currentWin.equals(expectedTitle)) {
+                                 break;
+                     }
+         }
+	 }
+	 
+	public boolean closeAllWithoutParentWindows(String parentGUID) {
+         Set<String> allWindows = driver.getWindowHandles();
+         for (String runWindows : allWindows) {
+                     if (!runWindows.equals(parentGUID)) {
+                                 driver.switchTo().window(runWindows);
+                                 driver.close();
+                     }
+         }
+         driver.switchTo().window(parentGUID);
+         if (driver.getWindowHandles().size() == 1)
+                    return true;
+         else
+                    return false;
+	 }
 
+	public void overideGlobalWait(long timeout) {
+		driver.manage().timeouts().implicitlyWait(timeout, TimeUnit.SECONDS);
+	}
 }
